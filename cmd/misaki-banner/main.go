@@ -11,8 +11,6 @@ import (
 )
 
 func main() {
-	onChar := flag.String("on", banner.DefaultOnChar, "character(s) for filled pixels")
-	offChar := flag.String("off", banner.DefaultOffChar, "character(s) for empty pixels")
 	shadow := flag.String("shadow", "", "shadow style: outline (box-drawing) or solid (shading)")
 	fontName := flag.String("font", "misaki_gothic_2nd", "font name: misaki_gothic, misaki_gothic_2nd, or misaki_mincho")
 	color := flag.String("color", "", "text color in RGB format (e.g. 255,100,200) or preset: red, green, blue, yellow, cyan, magenta, white")
@@ -65,8 +63,6 @@ func main() {
 	}
 
 	opts := banner.Options{
-		OnChar:   *onChar,
-		OffChar:  *offChar,
 		Shadow:   shadowMode,
 		Color:    *color,
 		Gradient: *gradient,

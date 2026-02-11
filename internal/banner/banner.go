@@ -8,40 +8,20 @@ import (
 	mfont "github.com/qraqras/misaki-banner/internal/font"
 )
 
-const (
-	// DefaultOnChar is the default character for "on" pixels.
-	DefaultOnChar = "██"
-	// DefaultOffChar is the default character for "off" pixels.
-	DefaultOffChar = "  "
-)
-
 // ShadowMode selects the shadow rendering style.
 type ShadowMode string
 
 const (
-	// ShadowNone disables shadow.
-	ShadowNone ShadowMode = ""
-	// ShadowOutline uses box-drawing characters (╗║╚═╝).
-	ShadowOutline ShadowMode = "outline"
-	// ShadowSolid uses shading blocks (░░) for a solid shadow.
-	ShadowSolid ShadowMode = "solid"
+	ShadowNone    ShadowMode = ""        // `██ `
+	ShadowOutline ShadowMode = "outline" // `██╗`
+	ShadowSolid   ShadowMode = "solid"   // `░░▄`
 )
 
 // Options controls how the banner is rendered.
 type Options struct {
-	OnChar   string     // character(s) for filled pixels
-	OffChar  string     // character(s) for empty pixels
 	Shadow   ShadowMode // shadow rendering style
 	Color    string     // text color (RGB format "r,g,b" or preset name)
 	Gradient bool       // enable gradient effect (light to dark)
-}
-
-// DefaultOptions returns default rendering options.
-func DefaultOptions() Options {
-	return Options{
-		OnChar:  DefaultOnChar,
-		OffChar: DefaultOffChar,
-	}
 }
 
 // glyphInfo holds bitmap and width information for a single glyph.
@@ -53,13 +33,6 @@ type glyphInfo struct {
 // Generate creates an ASCII-art banner string from the given text.
 // If text contains newlines, each line is rendered separately and joined.
 func Generate(face *mfont.Face, text string, opts Options) string {
-	if opts.OnChar == "" {
-		opts.OnChar = DefaultOnChar
-	}
-	if opts.OffChar == "" {
-		opts.OffChar = DefaultOffChar
-	}
-
 	// Handle multi-line text
 	if strings.Contains(text, "\n") {
 		var parts []string
@@ -90,22 +63,19 @@ func Generate(face *mfont.Face, text string, opts Options) string {
 		glyphs = append(glyphs, glyphInfo{bitmap: bm, width: w})
 	}
 
-	// Calculate total width and build charMap (x -> character index)
+	// Calculate total width
 	totalWidth := 0
 	for _, g := range glyphs {
 		totalWidth += g.width
 	}
 
-	// Build a combined 2D bool grid and track which character each pixel belongs to
+	// Build a combined 2D bool grid
 	grid := make([][]bool, height)
-	charMap := make([][]int, height) // maps (y, x) to character index
 	for y := 0; y < height; y++ {
 		grid[y] = make([]bool, totalWidth)
-		charMap[y] = make([]int, totalWidth)
 		xOff := 0
-		for ci, g := range glyphs {
+		for _, g := range glyphs {
 			for x := 0; x < g.width; x++ {
-				charMap[y][xOff+x] = ci
 				if y < len(g.bitmap) && x < len(g.bitmap[y]) && g.bitmap[y][x] {
 					grid[y][xOff+x] = true
 				}
@@ -114,26 +84,15 @@ func Generate(face *mfont.Face, text string, opts Options) string {
 		}
 	}
 
-	// Build per-character gradient data if needed
-	var gradientData [][]mcolor.RGB // [charIndex][y] -> color
-	if opts.Gradient || opts.Color != "" {
-		gradientData = make([][]mcolor.RGB, len(glyphs))
-		for ci, g := range glyphs {
-			if g.width > 0 && height > 0 {
-				gradientData[ci] = make([]mcolor.RGB, height)
-			}
-		}
-	}
-
 	switch opts.Shadow {
 	case ShadowOutline:
-		lines := outlineShadowLines(grid, charMap, glyphs, height, totalWidth, opts, gradientData)
+		lines := renderWithCharSet(grid, height, totalWidth, opts, getCharSet(ShadowOutline))
 		return trimBlankLines(lines)
 	case ShadowSolid:
-		lines := solidShadowLines(grid, charMap, glyphs, height, totalWidth, opts, gradientData)
+		lines := renderWithCharSet(grid, height, totalWidth, opts, getCharSet(ShadowSolid))
 		return trimBlankLines(lines)
 	default:
-		lines := gridLines(grid, charMap, glyphs, height, totalWidth, opts, gradientData)
+		lines := renderWithCharSet(grid, height, totalWidth, opts, getCharSet(ShadowNone))
 		return trimBlankLines(lines)
 	}
 }
@@ -177,8 +136,63 @@ func colorPixel(s string, y, x int, totalWidth int, opts Options, baseColor mcol
 	return color.ANSI() + s + mcolor.Reset
 }
 
-// gridLines renders a glyph grid as a string array, one per row.
-func gridLines(grid [][]bool, charMap [][]int, glyphs []glyphInfo, height, width int, opts Options, gradientData [][]mcolor.RGB) []string {
+// charSet defines the character set for different rendering modes.
+type charSet struct {
+	textOn          string // character for main text pixels
+	textOff         string // character for empty pixels
+	shadowLeftAbove string // left && above
+	shadowLeftDiag  string // left && diagonal
+	shadowLeft      string // left only
+	shadowAboveDiag string // above && diagonal
+	shadowAbove     string // above only
+	shadowDiag      string // diagonal only
+}
+
+// getCharSet returns the character set for the given shadow mode.
+func getCharSet(mode ShadowMode) charSet {
+	switch mode {
+	case ShadowOutline:
+		return charSet{
+			textOn:          "██",
+			textOff:         "  ",
+			shadowLeftAbove: "╔═",
+			shadowLeftDiag:  "║ ",
+			shadowLeft:      "╗ ",
+			shadowAboveDiag: "══",
+			shadowAbove:     "╚═",
+			shadowDiag:      "╝ ",
+		}
+	case ShadowSolid:
+		return charSet{
+			textOn:          "░░",
+			textOff:         "  ",
+			shadowLeftAbove: "█▀",
+			shadowLeftDiag:  "█ ",
+			shadowLeft:      "▄ ",
+			shadowAboveDiag: "▀▀",
+			shadowAbove:     " ▀",
+			shadowDiag:      "▀ ",
+		}
+	default:
+		return charSet{
+			textOn:  "██",
+			textOff: "  ",
+		}
+	}
+}
+
+// renderWithCharSet renders a glyph grid with the given character set.
+func renderWithCharSet(grid [][]bool, h, w int, opts Options, chars charSet) []string {
+	// For non-shadow modes, use simple rendering
+	if chars.shadowLeftAbove == "" {
+		return renderSimple(grid, h, w, opts, chars)
+	}
+	// For shadow modes, use shadow rendering
+	return renderShadow(grid, h, w, opts, chars)
+}
+
+// renderSimple renders a glyph grid without shadow effects.
+func renderSimple(grid [][]bool, height, width int, opts Options, chars charSet) []string {
 	lines := make([]string, height)
 	for y := 0; y < height; y++ {
 		var sb strings.Builder
@@ -194,9 +208,9 @@ func gridLines(grid [][]bool, charMap [][]int, glyphs []glyphInfo, height, width
 						hasColor = true
 					}
 				}
-				sb.WriteString(colorPixel(opts.OnChar, y, x, width, opts, baseColor, hasColor))
+				sb.WriteString(colorPixel(chars.textOn, y, x, width, opts, baseColor, hasColor))
 			} else {
-				sb.WriteString(opts.OffChar)
+				sb.WriteString(chars.textOff)
 			}
 		}
 		lines[y] = sb.String()
@@ -204,97 +218,14 @@ func gridLines(grid [][]bool, charMap [][]int, glyphs []glyphInfo, height, width
 	return lines
 }
 
-// outlineShadowLines renders a glyph grid with box-drawing shadow as a string array.
-func outlineShadowLines(grid [][]bool, charMap [][]int, glyphs []glyphInfo, h, w int, opts Options, gradientData [][]mcolor.RGB) []string {
+// renderShadow renders a glyph grid with shadow effects as a string array.
+func renderShadow(grid [][]bool, h, w int, opts Options, chars charSet) []string {
 	isOn := func(y, x int) bool {
 		if y < 0 || y >= h || x < 0 || x >= w {
 			return false
 		}
 		return grid[y][x]
 	}
-
-	// Extended canvas: +1 row for bottom shadow, +1 col for last char's right shadow
-	outH := h + 1
-	outW := w + 1
-
-	lines := make([]string, outH)
-	for y := 0; y < outH; y++ {
-		var sb strings.Builder
-		for x := 0; x < outW; x++ {
-			if isOn(y, x) {
-				// Parse base color
-				var baseColor mcolor.RGB
-				hasColor := false
-				if opts.Color != "" {
-					var err error
-					baseColor, err = mcolor.ParseColor(opts.Color)
-					if err == nil {
-						hasColor = true
-					}
-				}
-				sb.WriteString(colorPixel(opts.OnChar, y, x, w, opts, baseColor, hasColor))
-				continue
-			}
-
-			L := isOn(y, x-1)   // left
-			A := isOn(y-1, x)   // above
-			D := isOn(y-1, x-1) // diagonal (above-left)
-
-			// Get color from adjacent pixel for shadow
-			var baseColor mcolor.RGB
-			hasColor := false
-			if opts.Color != "" {
-				var err error
-				baseColor, err = mcolor.ParseColor(opts.Color)
-				if err == nil {
-					hasColor = true
-				}
-			}
-
-			var shadowStr string
-			switch {
-			case L && A:
-				shadowStr = "╔═"
-				if L {
-					shadowStr = colorPixel(shadowStr, y, x-1, w, opts, baseColor, hasColor)
-				}
-			case L:
-				if D {
-					shadowStr = "║ "
-				} else {
-					shadowStr = "╗ "
-				}
-				shadowStr = colorPixel(shadowStr, y, x-1, w, opts, baseColor, hasColor)
-			case A:
-				if D {
-					shadowStr = "══"
-				} else {
-					shadowStr = "╚═"
-				}
-				shadowStr = colorPixel(shadowStr, y-1, x, w, opts, baseColor, hasColor)
-			case D:
-				shadowStr = "╝ "
-				shadowStr = colorPixel(shadowStr, y-1, x-1, w, opts, baseColor, hasColor)
-			default:
-				shadowStr = opts.OffChar
-			}
-			sb.WriteString(shadowStr)
-		}
-		lines[y] = sb.String()
-	}
-	return lines
-}
-
-// solidShadowLines renders text with MEDIUM SHADE and shadow with FULL BLOCK (dimmed).
-func solidShadowLines(grid [][]bool, charMap [][]int, glyphs []glyphInfo, h, w int, opts Options, gradientData [][]mcolor.RGB) []string {
-	isOn := func(y, x int) bool {
-		if y < 0 || y >= h || x < 0 || x >= w {
-			return false
-		}
-		return grid[y][x]
-	}
-
-	textChar := "░░" // LIGHT SHADE for text
 
 	// Extended canvas: +1 row for bottom shadow, +1 col for right shadow
 	outH := h + 1
@@ -315,13 +246,13 @@ func solidShadowLines(grid [][]bool, charMap [][]int, glyphs []glyphInfo, h, w i
 						hasColor = true
 					}
 				}
-				sb.WriteString(colorPixel(textChar, y, x, w, opts, baseColor, hasColor))
+				sb.WriteString(colorPixel(chars.textOn, y, x, w, opts, baseColor, hasColor))
 				continue
 			}
 
-			L := isOn(y, x-1)   // left
-			A := isOn(y-1, x)   // above
-			D := isOn(y-1, x-1) // diagonal (above-left)
+			left := isOn(y, x-1)       // left
+			above := isOn(y-1, x)      // above
+			diagonal := isOn(y-1, x-1) // diagonal (above-left)
 
 			// Get color from adjacent pixel for shadow
 			var baseColor mcolor.RGB
@@ -336,30 +267,26 @@ func solidShadowLines(grid [][]bool, charMap [][]int, glyphs []glyphInfo, h, w i
 
 			var shadowStr string
 			switch {
-			case L && A:
-				shadowStr = "█▀" // L-shape: left + top
-				if L {
-					shadowStr = colorPixel(shadowStr, y, x-1, w, opts, baseColor, hasColor)
-				}
-			case L:
-				if D {
-					shadowStr = "█ " // vertical shadow (full block)
-				} else {
-					shadowStr = "▄ " // vertical shadow (left half)
-				}
+			case left && above:
+				shadowStr = chars.shadowLeftAbove
 				shadowStr = colorPixel(shadowStr, y, x-1, w, opts, baseColor, hasColor)
-			case A:
-				if D {
-					shadowStr = "▀▀" // horizontal shadow (full block)
-				} else {
-					shadowStr = " ▀" // horizontal shadow (right half)
-				}
+			case left && diagonal:
+				shadowStr = chars.shadowLeftDiag
+				shadowStr = colorPixel(shadowStr, y, x-1, w, opts, baseColor, hasColor)
+			case left:
+				shadowStr = chars.shadowLeft
+				shadowStr = colorPixel(shadowStr, y, x-1, w, opts, baseColor, hasColor)
+			case above && diagonal:
+				shadowStr = chars.shadowAboveDiag
 				shadowStr = colorPixel(shadowStr, y-1, x, w, opts, baseColor, hasColor)
-			case D:
-				shadowStr = "▀ " // corner only (upper-left quarter)
+			case above:
+				shadowStr = chars.shadowAbove
+				shadowStr = colorPixel(shadowStr, y-1, x, w, opts, baseColor, hasColor)
+			case diagonal:
+				shadowStr = chars.shadowDiag
 				shadowStr = colorPixel(shadowStr, y-1, x-1, w, opts, baseColor, hasColor)
 			default:
-				shadowStr = opts.OffChar
+				shadowStr = chars.textOff
 			}
 			sb.WriteString(shadowStr)
 		}

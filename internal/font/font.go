@@ -16,24 +16,23 @@ import (
 type FontName string
 
 const (
-	// FontMisakiGothic is the 8x8 Misaki Gothic font.
-	FontMisakiGothic FontName = "misaki_gothic"
-	// FontMisakiGothic2nd is the 8x8 Misaki Gothic 2nd font.
+	FontMisakiGothic    FontName = "misaki_gothic"
 	FontMisakiGothic2nd FontName = "misaki_gothic_2nd"
-	// FontMisakiMincho is the 8x8 Misaki Mincho font.
-	FontMisakiMincho FontName = "misaki_mincho"
+	FontMisakiMincho    FontName = "misaki_mincho"
+
+	// misakiFontSize is the fixed pixel size for all Misaki fonts (8x8).
+	misakiFontSize = 8
 )
 
-// fontDef describes a font's embedded data and pixel size.
+// fontDef describes a font's embedded data.
 type fontDef struct {
 	data []byte
-	size float64
 }
 
 var fonts = map[FontName]fontDef{
-	FontMisakiGothic:    {data: misaki.GothicTTF, size: 8},
-	FontMisakiGothic2nd: {data: misaki.Gothic2ndTTF, size: 8},
-	FontMisakiMincho:    {data: misaki.MinchoTTF, size: 8},
+	FontMisakiGothic:    {data: misaki.GothicTTF},
+	FontMisakiGothic2nd: {data: misaki.Gothic2ndTTF},
+	FontMisakiMincho:    {data: misaki.MinchoTTF},
 }
 
 // Face holds a parsed font face ready for rendering.
@@ -60,7 +59,7 @@ func NewFace(name FontName) (*Face, error) {
 	}
 
 	face, err := opentype.NewFace(ft, &opentype.FaceOptions{
-		Size:    def.size,
+		Size:    misakiFontSize,
 		DPI:     72,
 		Hinting: font.HintingFull,
 	})
@@ -68,11 +67,7 @@ func NewFace(name FontName) (*Face, error) {
 		return nil, fmt.Errorf("failed to create font face: %w", err)
 	}
 
-	// Compute actual pixel height from font metrics (ascent + descent)
-	metrics := face.Metrics()
-	pixelHeight := metrics.Ascent.Ceil() + metrics.Descent.Ceil()
-
-	return &Face{face: face, fontSize: pixelHeight}, nil
+	return &Face{face: face, fontSize: misakiFontSize}, nil
 }
 
 // RuneBitmap returns a bitmap (as [][]bool) for the given rune.
@@ -83,14 +78,13 @@ func (f *Face) RuneBitmap(r rune) [][]bool {
 	adv := f.Advance(r)
 	metrics := f.face.Metrics()
 	ascent := metrics.Ascent.Ceil()
-	h := f.fontSize
 
-	// Create image sized to the glyph advance x font height
+	// Create image sized to the glyph advance x font height (8x8 fixed)
 	w := adv
-	if w < h {
-		w = h
+	if w < misakiFontSize {
+		w = misakiFontSize
 	}
-	img := image.NewGray(image.Rect(0, 0, w, h))
+	img := image.NewGray(image.Rect(0, 0, w, misakiFontSize))
 	draw.Draw(img, img.Bounds(), image.White, image.Point{}, draw.Src)
 
 	d := &font.Drawer{
@@ -102,8 +96,8 @@ func (f *Face) RuneBitmap(r rune) [][]bool {
 	d.DrawString(string(r))
 
 	// Build raw bitmap
-	raw := make([][]bool, h)
-	for y := 0; y < h; y++ {
+	raw := make([][]bool, misakiFontSize)
+	for y := 0; y < misakiFontSize; y++ {
 		raw[y] = make([]bool, adv)
 		for x := 0; x < adv; x++ {
 			raw[y][x] = img.GrayAt(x, y).Y < 128
@@ -112,7 +106,7 @@ func (f *Face) RuneBitmap(r rune) [][]bool {
 
 	// Find leftmost and rightmost non-empty columns
 	minX, maxX := adv, -1
-	for y := 0; y < h; y++ {
+	for y := 0; y < misakiFontSize; y++ {
 		for x := 0; x < adv; x++ {
 			if raw[y][x] {
 				if x < minX {
@@ -127,8 +121,8 @@ func (f *Face) RuneBitmap(r rune) [][]bool {
 
 	// If glyph is entirely blank, return a 1-cell blank column
 	if maxX < 0 {
-		blank := make([][]bool, h)
-		for y := 0; y < h; y++ {
+		blank := make([][]bool, misakiFontSize)
+		for y := 0; y < misakiFontSize; y++ {
 			blank[y] = make([]bool, 1)
 		}
 		return blank
@@ -138,8 +132,8 @@ func (f *Face) RuneBitmap(r rune) [][]bool {
 	// Adjacent glyphs each contribute 1 left pad → 2 spaces between chars
 	trimW := maxX - minX + 1
 	padW := trimW + 1 // +1 left only
-	bitmap := make([][]bool, h)
-	for y := 0; y < h; y++ {
+	bitmap := make([][]bool, misakiFontSize)
+	for y := 0; y < misakiFontSize; y++ {
 		bitmap[y] = make([]bool, padW)
 		for x := 0; x < trimW; x++ {
 			bitmap[y][x+1] = raw[y][minX+x]
@@ -152,7 +146,7 @@ func (f *Face) RuneBitmap(r rune) [][]bool {
 func (f *Face) Advance(r rune) int {
 	adv, ok := f.face.GlyphAdvance(r)
 	if !ok {
-		return f.fontSize
+		return misakiFontSize
 	}
 	return adv.Ceil()
 }
