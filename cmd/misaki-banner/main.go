@@ -13,7 +13,7 @@ import (
 func main() {
 	shadow := flag.String("shadow", "", "shadow style: outline (box-drawing) or solid (shading)")
 	fontName := flag.String("font", "misaki_gothic_2nd", "font name: misaki_gothic, misaki_gothic_2nd, or misaki_mincho")
-	color := flag.String("color", "", "text color in RGB format (e.g. 255,100,200) or preset: red, green, blue, yellow, cyan, magenta, white")
+	color := flag.String("color", "", "text color: preset (c,m,y) or hex (#RRGGBB/RRGGBB) or RGB (r,g,b)")
 	gradient := flag.Bool("gradient", false, "enable gradient effect (from light to dark, top-left to bottom-right)")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] <text>\n\nOptions:\n", os.Args[0])

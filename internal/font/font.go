@@ -1,4 +1,3 @@
-// Package font handles loading and rasterizing bitmap fonts from TTF.
 package font
 
 import (
@@ -16,12 +15,10 @@ import (
 type FontName string
 
 const (
-	FontMisakiGothic    FontName = "misaki_gothic"
-	FontMisakiGothic2nd FontName = "misaki_gothic_2nd"
-	FontMisakiMincho    FontName = "misaki_mincho"
-
-	// misakiFontSize is the fixed pixel size for all Misaki fonts (8x8).
-	misakiFontSize = 8
+	misakiFontSize               = 8                   // fixed 8x8 pixel font
+	FontMisakiGothic    FontName = "misaki_gothic"     // sans-serif style
+	FontMisakiGothic2nd FontName = "misaki_gothic_2nd" // sans-serif style
+	FontMisakiMincho    FontName = "misaki_mincho"     // serif style
 )
 
 // fontDef describes a font's embedded data.

@@ -1,4 +1,3 @@
-// Package banner converts text into ASCII-art banner strings using bitmap font data.
 package banner
 
 import (
@@ -28,6 +27,12 @@ type Options struct {
 type glyphInfo struct {
 	bitmap [][]bool
 	width  int
+}
+
+// colorInfo holds pre-parsed color information to avoid per-pixel parsing.
+type colorInfo struct {
+	color    mcolor.RGB
+	hasColor bool
 }
 
 // Generate creates an ASCII-art banner string from the given text.
@@ -84,17 +89,17 @@ func Generate(face *mfont.Face, text string, opts Options) string {
 		}
 	}
 
-	switch opts.Shadow {
-	case ShadowOutline:
-		lines := renderWithCharSet(grid, height, totalWidth, opts, getCharSet(ShadowOutline))
-		return trimBlankLines(lines)
-	case ShadowSolid:
-		lines := renderWithCharSet(grid, height, totalWidth, opts, getCharSet(ShadowSolid))
-		return trimBlankLines(lines)
-	default:
-		lines := renderWithCharSet(grid, height, totalWidth, opts, getCharSet(ShadowNone))
-		return trimBlankLines(lines)
+	// Parse color once, not per-pixel
+	var ci colorInfo
+	if opts.Color != "" {
+		c, err := mcolor.ParseColor(opts.Color)
+		if err == nil {
+			ci = colorInfo{color: c, hasColor: true}
+		}
 	}
+
+	lines := renderWithCharSet(grid, height, totalWidth, opts, getCharSet(opts.Shadow), ci)
+	return trimBlankLines(lines)
 }
 
 // colorPixel returns the string wrapped with the ANSI color for the given pixel.
@@ -182,33 +187,23 @@ func getCharSet(mode ShadowMode) charSet {
 }
 
 // renderWithCharSet renders a glyph grid with the given character set.
-func renderWithCharSet(grid [][]bool, h, w int, opts Options, chars charSet) []string {
+func renderWithCharSet(grid [][]bool, h, w int, opts Options, chars charSet, ci colorInfo) []string {
 	// For non-shadow modes, use simple rendering
 	if chars.shadowLeftAbove == "" {
-		return renderSimple(grid, h, w, opts, chars)
+		return renderSimple(grid, h, w, opts, chars, ci)
 	}
 	// For shadow modes, use shadow rendering
-	return renderShadow(grid, h, w, opts, chars)
+	return renderShadow(grid, h, w, opts, chars, ci)
 }
 
 // renderSimple renders a glyph grid without shadow effects.
-func renderSimple(grid [][]bool, height, width int, opts Options, chars charSet) []string {
+func renderSimple(grid [][]bool, height, width int, opts Options, chars charSet, ci colorInfo) []string {
 	lines := make([]string, height)
 	for y := 0; y < height; y++ {
 		var sb strings.Builder
 		for x := 0; x < width; x++ {
 			if grid[y][x] {
-				// Parse base color
-				var baseColor mcolor.RGB
-				hasColor := false
-				if opts.Color != "" {
-					var err error
-					baseColor, err = mcolor.ParseColor(opts.Color)
-					if err == nil {
-						hasColor = true
-					}
-				}
-				sb.WriteString(colorPixel(chars.textOn, y, x, width, opts, baseColor, hasColor))
+				sb.WriteString(colorPixel(chars.textOn, y, x, width, opts, ci.color, ci.hasColor))
 			} else {
 				sb.WriteString(chars.textOff)
 			}
@@ -219,7 +214,7 @@ func renderSimple(grid [][]bool, height, width int, opts Options, chars charSet)
 }
 
 // renderShadow renders a glyph grid with shadow effects as a string array.
-func renderShadow(grid [][]bool, h, w int, opts Options, chars charSet) []string {
+func renderShadow(grid [][]bool, h, w int, opts Options, chars charSet, ci colorInfo) []string {
 	isOn := func(y, x int) bool {
 		if y < 0 || y >= h || x < 0 || x >= w {
 			return false
@@ -236,17 +231,7 @@ func renderShadow(grid [][]bool, h, w int, opts Options, chars charSet) []string
 		var sb strings.Builder
 		for x := 0; x < outW; x++ {
 			if isOn(y, x) {
-				// Parse base color
-				var baseColor mcolor.RGB
-				hasColor := false
-				if opts.Color != "" {
-					var err error
-					baseColor, err = mcolor.ParseColor(opts.Color)
-					if err == nil {
-						hasColor = true
-					}
-				}
-				sb.WriteString(colorPixel(chars.textOn, y, x, w, opts, baseColor, hasColor))
+				sb.WriteString(colorPixel(chars.textOn, y, x, w, opts, ci.color, ci.hasColor))
 				continue
 			}
 
@@ -254,37 +239,26 @@ func renderShadow(grid [][]bool, h, w int, opts Options, chars charSet) []string
 			above := isOn(y-1, x)      // above
 			diagonal := isOn(y-1, x-1) // diagonal (above-left)
 
-			// Get color from adjacent pixel for shadow
-			var baseColor mcolor.RGB
-			hasColor := false
-			if opts.Color != "" {
-				var err error
-				baseColor, err = mcolor.ParseColor(opts.Color)
-				if err == nil {
-					hasColor = true
-				}
-			}
-
 			var shadowStr string
 			switch {
 			case left && above:
 				shadowStr = chars.shadowLeftAbove
-				shadowStr = colorPixel(shadowStr, y, x-1, w, opts, baseColor, hasColor)
+				shadowStr = colorPixel(shadowStr, y, x-1, w, opts, ci.color, ci.hasColor)
 			case left && diagonal:
 				shadowStr = chars.shadowLeftDiag
-				shadowStr = colorPixel(shadowStr, y, x-1, w, opts, baseColor, hasColor)
+				shadowStr = colorPixel(shadowStr, y, x-1, w, opts, ci.color, ci.hasColor)
 			case left:
 				shadowStr = chars.shadowLeft
-				shadowStr = colorPixel(shadowStr, y, x-1, w, opts, baseColor, hasColor)
+				shadowStr = colorPixel(shadowStr, y, x-1, w, opts, ci.color, ci.hasColor)
 			case above && diagonal:
 				shadowStr = chars.shadowAboveDiag
-				shadowStr = colorPixel(shadowStr, y-1, x, w, opts, baseColor, hasColor)
+				shadowStr = colorPixel(shadowStr, y-1, x, w, opts, ci.color, ci.hasColor)
 			case above:
 				shadowStr = chars.shadowAbove
-				shadowStr = colorPixel(shadowStr, y-1, x, w, opts, baseColor, hasColor)
+				shadowStr = colorPixel(shadowStr, y-1, x, w, opts, ci.color, ci.hasColor)
 			case diagonal:
 				shadowStr = chars.shadowDiag
-				shadowStr = colorPixel(shadowStr, y-1, x-1, w, opts, baseColor, hasColor)
+				shadowStr = colorPixel(shadowStr, y-1, x-1, w, opts, ci.color, ci.hasColor)
 			default:
 				shadowStr = chars.textOff
 			}

@@ -1,9 +1,9 @@
-// Package color provides ANSI true-color utilities.
 package color
 
 import (
 	"fmt"
 	"math"
+	"strconv"
 )
 
 // RGB represents a 24-bit color.
@@ -96,18 +96,35 @@ var ColorPresets = map[string]RGB{
 	"y": {255, 255, 0},
 }
 
-// ParseColor parses a color string in RGB format "r,g,b" or a preset name.
+// ParseColor parses a color string in RGB format "r,g,b", hex format "#RRGGBB"/"RRGGBB", or a preset name.
 func ParseColor(s string) (RGB, error) {
+	// Strip leading '#' if present
+	if len(s) > 0 && s[0] == '#' {
+		s = s[1:]
+	}
+
 	// Check if it's a preset
 	if c, ok := ColorPresets[s]; ok {
 		return c, nil
+	}
+
+	// Try to parse as hex color (e.g., "ffffff")
+	if len(s) == 6 {
+		val, err := strconv.ParseUint(s, 16, 32)
+		if err == nil {
+			return RGB{
+				R: uint8((val & 0xFF0000) >> 16),
+				G: uint8((val & 0x00FF00) >> 8),
+				B: uint8((val & 0x0000FF) >> 0),
+			}, nil
+		}
 	}
 
 	// Try to parse as "r,g,b"
 	var r, g, b int
 	n, err := fmt.Sscanf(s, "%d,%d,%d", &r, &g, &b)
 	if err != nil || n != 3 {
-		return RGB{}, fmt.Errorf("invalid color format: %s (use 'r,g,b' or preset name)", s)
+		return RGB{}, fmt.Errorf("invalid color format: %s (use 'RRGGBB', 'r,g,b' or preset name)", s)
 	}
 
 	if r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 {
