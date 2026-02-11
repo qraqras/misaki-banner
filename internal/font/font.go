@@ -6,7 +6,7 @@ import (
 	"image"
 	"image/draw"
 
-	"github.com/qraqras/mskbanner/misaki"
+	"github.com/qraqras/misaki-banner/misaki"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
@@ -16,8 +16,12 @@ import (
 type FontName string
 
 const (
-	// FontMisaki is the 8x8 Misaki Gothic font.
-	FontMisaki FontName = "misaki"
+	// FontMisakiGothic is the 8x8 Misaki Gothic font.
+	FontMisakiGothic FontName = "misaki_gothic"
+	// FontMisakiGothic2nd is the 8x8 Misaki Gothic 2nd font.
+	FontMisakiGothic2nd FontName = "misaki_gothic_2nd"
+	// FontMisakiMincho is the 8x8 Misaki Mincho font.
+	FontMisakiMincho FontName = "misaki_mincho"
 )
 
 // fontDef describes a font's embedded data and pixel size.
@@ -27,7 +31,9 @@ type fontDef struct {
 }
 
 var fonts = map[FontName]fontDef{
-	FontMisaki: {data: misaki.GothicTTF, size: 8},
+	FontMisakiGothic:    {data: misaki.GothicTTF, size: 8},
+	FontMisakiGothic2nd: {data: misaki.Gothic2ndTTF, size: 8},
+	FontMisakiMincho:    {data: misaki.MinchoTTF, size: 8},
 }
 
 // Face holds a parsed font face ready for rendering.
@@ -45,7 +51,7 @@ func (f *Face) FontSize() int {
 func NewFace(name FontName) (*Face, error) {
 	def, ok := fonts[name]
 	if !ok {
-		return nil, fmt.Errorf("unknown font: %s (available: misaki, k8x12)", name)
+		return nil, fmt.Errorf("unknown font: %s (available: misaki_gothic, misaki_gothic_2nd, misaki_mincho)", name)
 	}
 
 	ft, err := opentype.Parse(def.data)
