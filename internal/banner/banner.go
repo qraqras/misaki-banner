@@ -1,6 +1,7 @@
 package banner
 
 import (
+	"math"
 	"strings"
 
 	mcolor "github.com/qraqras/misaki-banner/internal/color"
@@ -125,12 +126,11 @@ func colorPixel(s string, y, x int, totalWidth int, opts Options, baseColor mcol
 				t = 1
 			}
 
-			// Create a natural gradient by shifting hue only
-			// Left: +18 degrees hue
-			// Center: 0 degrees hue (base color)
-			// Right: -18 degrees hue
-			hueDelta := 18.0 - (36.0 * t) // +18 to -18
-			lightDelta := 0.0             // No lightness change
+			// Create a natural gradient by shifting hue and lightness
+			// Hue: Left +20 -> Center 0 -> Right -20 (degrees)
+			// Lightness: Left +0.2 -> Center 0 -> Right +0.2 (V-shape, factor 0-1)
+			hueDelta := 20.0 - (40.0 * t)       // +20 to -20
+			lightDelta := 0.2 * math.Abs(t-0.5) // +0.2 to 0 to +0.2
 			color = mcolor.ShiftColor(baseColor, hueDelta, lightDelta)
 		}
 	} else {
