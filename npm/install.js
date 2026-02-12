@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 
-const { existsSync, mkdirSync, chmodSync } = require('fs');
+const { existsSync, chmodSync, createWriteStream, unlinkSync } = require('fs');
 const { get } = require('https');
 const { join } = require('path');
 const { pipeline } = require('stream');
 const { promisify } = require('util');
-const { createWriteStream, createReadStream } = require('fs');
-const { Extract } = require('tar');
-const { createGunzip } = require('zlib');
+const tar = require('tar');
 
 const streamPipeline = promisify(pipeline);
 
@@ -53,8 +51,6 @@ function getDownloadURL() {
     const version = getVersion();
     const { platform, arch } = getPlatform();
 
-    // misaki-banner_v1.0.0_darwin_arm64.tar.gz
-    const archiveName = `misaki-banner_${version}_${platform}_${arch}.tar.gz`;
     const ext = platform === 'windows' ? 'zip' : 'tar.gz';
     const fileName = `misaki-banner_${version}_${platform}_${arch}.${ext}`;
 
@@ -63,7 +59,7 @@ function getDownloadURL() {
 
 async function download(url, destPath) {
     return new Promise((resolve, reject) => {
-        get(url, { followAllRedirects: true }, (response) => {
+        get(url, (response) => {
             if (response.statusCode === 302 || response.statusCode === 301) {
                 // Follow redirect
                 download(response.headers.location, destPath).then(resolve).catch(reject);
@@ -84,14 +80,10 @@ async function download(url, destPath) {
 }
 
 async function extractTarGz(archivePath, destDir) {
-    const gunzip = createGunzip();
-    const extract = Extract({ cwd: destDir });
-
-    await streamPipeline(
-        createReadStream(archivePath),
-        gunzip,
-        extract
-    );
+    await tar.x({
+        file: archivePath,
+        cwd: destDir
+    });
 }
 
 async function install() {
@@ -131,8 +123,7 @@ async function install() {
         }
 
         // Clean up archive
-        const fs = require('fs');
-        fs.unlinkSync(archivePath);
+        unlinkSync(archivePath);
 
         console.log('Installation complete!');
     } catch (error) {
