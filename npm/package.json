@@ -4,7 +4,7 @@
     "description": "8x8 bitmap banner generator for Japanese using Misaki Font",
     "repository": {
         "type": "git",
-        "url": "https://github.com/qraqras/misaki-banner.git"
+        "url": "git+https://github.com/qraqras/misaki-banner.git"
     },
     "homepage": "https://github.com/qraqras/misaki-banner",
     "bugs": {
@@ -20,6 +20,10 @@
     ],
     "author": "qraqras",
     "license": "MIT",
+    "publishConfig": {
+        "access": "public",
+        "provenance": true
+    },
     "bin": {
         "misaki-banner": "./bin.js"
     },
