@@ -58,7 +58,7 @@ function getDownloadURL() {
     const ext = platform === 'windows' ? 'zip' : 'tar.gz';
     const fileName = `misaki-banner_${version}_${platform}_${arch}.${ext}`;
 
-    return `https://github.com/${REPO}/releases/download/${version}/${fileName}`;
+    return `https://github.com/${REPO}/releases/download/v${version}/${fileName}`;
 }
 
 async function download(url, destPath) {
