@@ -53,6 +53,9 @@ jobs:
         run: |
           npm version ${{ steps.version.outputs.VERSION }} --no-git-tag-version
 
+      - name: Copy README
+        run: cp README.md npm/README.md
+
       - name: Install dependencies
         working-directory: ./npm
         run: npm install --omit=dev
