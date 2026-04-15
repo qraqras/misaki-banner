@@ -23,7 +23,7 @@ npx misaki-banner "こんにちは"
 #### Go
 
 ```bash
-go install github.com/qraqras/misaki-banner/cmd/misaki-banner@latest
+go install github.com/ryumasai/misaki-banner/cmd/misaki-banner@latest
 ```
 
 #### npm
@@ -34,7 +34,7 @@ npm install -g misaki-banner
 
 #### バイナリ
 
-[GitHub Releases](https://github.com/qraqras/misaki-banner/releases) から OS 別のバイナリをダウンロードできます。
+[GitHub Releases](https://github.com/ryumasai/misaki-banner/releases) から OS 別のバイナリをダウンロードできます。
 
 ## 使い方
 
@@ -137,7 +137,7 @@ npx misaki-banner "Hello"
 #### Go
 
 ```bash
-go install github.com/qraqras/misaki-banner/cmd/misaki-banner@latest
+go install github.com/ryumasai/misaki-banner/cmd/misaki-banner@latest
 ```
 
 #### npm
@@ -148,7 +148,7 @@ npm install -g misaki-banner
 
 #### Binary
 
-Download OS-specific binaries from [GitHub Releases](https://github.com/qraqras/misaki-banner/releases).
+Download OS-specific binaries from [GitHub Releases](https://github.com/ryumasai/misaki-banner/releases).
 
 ## Usage
 

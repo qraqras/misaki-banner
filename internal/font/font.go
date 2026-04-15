@@ -5,7 +5,7 @@ import (
 	"image"
 	"image/draw"
 
-	"github.com/qraqras/misaki-banner/misaki"
+	"github.com/ryumasai/misaki-banner/misaki"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"

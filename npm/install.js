@@ -10,7 +10,7 @@ const tar = require('tar');
 const streamPipeline = promisify(pipeline);
 
 const BINARY_NAME = 'misaki-banner';
-const REPO = 'qraqras/misaki-banner';
+const REPO = 'ryumasai/misaki-banner';
 
 function getPlatform() {
     const platform = process.platform;

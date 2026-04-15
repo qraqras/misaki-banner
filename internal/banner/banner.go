@@ -4,8 +4,8 @@ import (
 	"math"
 	"strings"
 
-	mcolor "github.com/qraqras/misaki-banner/internal/color"
-	mfont "github.com/qraqras/misaki-banner/internal/font"
+	mcolor "github.com/ryumasai/misaki-banner/internal/color"
+	mfont "github.com/ryumasai/misaki-banner/internal/font"
 )
 
 // ShadowMode selects the shadow rendering style.

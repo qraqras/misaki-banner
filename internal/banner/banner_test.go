@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	mfont "github.com/qraqras/misaki-banner/internal/font"
+	mfont "github.com/ryumasai/misaki-banner/internal/font"
 )
 
 func newTestFace(t *testing.T) *mfont.Face {
