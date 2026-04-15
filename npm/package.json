@@ -1,14 +1,14 @@
 {
     "name": "misaki-banner",
-    "version": "0.0.0-development",
+    "version": "1.0.0",
     "description": "8x8 bitmap banner generator for Japanese using Misaki Font",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/qraqras/misaki-banner.git"
+        "url": "git+https://github.com/ryumasai/misaki-banner.git"
     },
-    "homepage": "https://github.com/qraqras/misaki-banner",
+    "homepage": "https://github.com/ryumasai/misaki-banner",
     "bugs": {
-        "url": "https://github.com/qraqras/misaki-banner/issues"
+        "url": "https://github.com/ryumasai/misaki-banner/issues"
     },
     "keywords": [
         "banner",
@@ -18,7 +18,7 @@
         "cli",
         "terminal"
     ],
-    "author": "qraqras",
+    "author": "ryumasai",
     "license": "MIT",
     "publishConfig": {
         "access": "public",

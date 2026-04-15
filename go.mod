@@ -1,4 +1,4 @@
-module github.com/qraqras/misaki-banner
+module github.com/ryumasai/misaki-banner
 
 go 1.26.0
 

@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/qraqras/misaki-banner/internal/banner"
-	mfont "github.com/qraqras/misaki-banner/internal/font"
+	"github.com/ryumasai/misaki-banner/internal/banner"
+	mfont "github.com/ryumasai/misaki-banner/internal/font"
 )
 
 func main() {
