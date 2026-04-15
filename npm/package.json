@@ -1,6 +1,6 @@
 {
     "name": "misaki-banner",
-    "version": "0.0.0-development",
+    "version": "1.0.0",
     "description": "8x8 bitmap banner generator for Japanese using Misaki Font",
     "repository": {
         "type": "git",
